@@ -1,0 +1,92 @@
+import flet as ft
+from datetime import datetime
+
+def main(page: ft.Page):
+    page.title = 'Мое первое приложение!'
+    page.theme_mode = ft.ThemeMode.LIGHT
+    page.vertical_alignment = ft.MainAxisAlignment.CENTER
+    page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
+
+    greeting_history = []
+    favorites = []
+
+    try:
+        with open('history.txt', 'r') as f:
+            greeting_history = f.readlines()
+    except:
+        greeting_history = []
+
+    greeting_text = ft.Text("История приветствий:\n" + "".join(greeting_history[-5:]))
+    favorites_list = ft.Text("Избранные:")
+
+    def text_name(e):
+        name = text_input.value.strip()
+        if name:
+            text_hello.value = f"Добро пожаловать, {name}!"
+            text_hello.color = ft.Colors.GREEN_900
+            text_input.value = ""
+            ts = datetime.now().strftime('%H:%M')
+            greeting_history.append(f"{ts} - {name}\n")
+            with open('history.txt', 'a') as f:
+                f.write(f"{ts} - {name}\n")
+            update_history()
+        else:
+            text_hello.value = f"Поле ввода имени не заполнено!"
+            text_hello.color = ft.Colors.RED_900
+        page.update()
+
+    def update_history():
+        greeting_text.value = "История:\n" + "".join(greeting_history[-5:])
+        page.update()
+
+    def add_to_favorites(e):
+        if greeting_history:
+            last_name = greeting_history[-1].split(' - ')[1].strip()
+            if last_name not in favorites:
+                favorites.append(last_name)
+                favorites_list.value = "Избранные:\n" + "\n".join(favorites)
+                page.update()
+
+    def clear_history(e):
+        greeting_history.clear()
+        greeting_text.value = "История приветствий:"
+        page.update()
+
+    def thememode(e):
+        if page.theme_mode == ft.ThemeMode.DARK:
+            page.theme_mode = ft.ThemeMode.LIGHT
+            theme_btn.icon = ft.Icons.BRIGHTNESS_7
+        else:
+            page.theme_mode = ft.ThemeMode.DARK
+            theme_btn.icon = ft.Icons.BRIGHTNESS_3
+        page.update()
+
+    def filter_morning(e):
+        filtered = [g for g in greeting_history if int(g.split(' - ')[0].split(':')[0]) < 12]
+        greeting_text.value = "Утренние:\n" + "".join(filtered)
+        page.update()
+
+    def filter_evening(e):
+        filtered = [g for g in greeting_history if int(g.split(' - ')[0].split(':')[0]) >= 12]
+        greeting_text.value = "Вечерние:\n" + "".join(filtered)
+        page.update()
+
+    text_hello = ft.Text('Как тебя зовут?', size=25)
+    text_input = ft.TextField(label="Введите свое имя", on_submit=text_name)
+    btn = ft.ElevatedButton('SEND', on_click=text_name)
+    clear_button = ft.IconButton(icon=ft.Icons.DELETE, on_click=clear_history)
+    theme_btn = ft.IconButton(icon=ft.Icons.BRIGHTNESS_7, on_click=thememode)
+    favorite_button = ft.IconButton(icon=ft.Icons.FAVORITE, on_click=add_to_favorites)
+    morning_button = ft.Button("Утренние", on_click=filter_morning)
+    evening_button = ft.Button("Вечерние", on_click=filter_evening)
+
+    page.add(
+        ft.Row([text_hello], alignment=ft.MainAxisAlignment.CENTER),
+        ft.Row([text_input, btn], alignment=ft.MainAxisAlignment.CENTER),
+        ft.Row([clear_button, favorite_button, theme_btn], alignment=ft.MainAxisAlignment.CENTER),
+        ft.Row([morning_button, evening_button], alignment=ft.MainAxisAlignment.CENTER),
+        greeting_text,
+        favorites_list
+    )
+
+ft.app(target=main, view=ft.AppView.WEB_BROWSER)
